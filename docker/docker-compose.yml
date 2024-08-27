@@ -1,0 +1,59 @@
+services:
+  node-service:
+    build:
+      context: ../node
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../node:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:password@postgres-service:5432/agrimarketwatch
+    depends_on:
+      - postgres-service
+      - python-service
+    command: yarn dev
+
+  react-service:
+    build:
+      context: ../react
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3000"
+    volumes:
+      - ../react:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    command: yarn dev
+    depends_on:
+      - node-service
+
+  python-service:
+    build:
+      context: ../python
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../python:/app
+    environment:
+      - PYTHON_ENV=development
+      - DATABASE_URL=postgresql://postgres:password@postgres-service:5432/agrimarketwatch
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  postgres-service:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: agrimarketwatch
+    ports:
+      - "5432:5432"
+    volumes:
+      - ../database/db-postgres:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
